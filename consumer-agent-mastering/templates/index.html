@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知途 · AI 出行与消费性价比决策 Agent</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header class="topbar no-print">
+  <div class="brand">
+    <span class="logo">◉</span>
+    <div>
+      <h1>知途 <span class="brand-sub">AI 出行与消费性价比决策 Agent</span></h1>
+      <p class="subtitle">感知定位 → 检索周边 → CoT 推理算账 → 给出可执行方案</p>
+    </div>
+  </div>
+  <!-- 定位条：压缩到顶栏右侧 -->
+  <div class="loc-bar">
+    <button class="btn ghost sm" id="btnLocate">📍 定位</button>
+    <span class="loc-badge" id="locBadge">未定位</span>
+    <input type="text" id="addressInput" class="loc-input" placeholder="定位失败？手输地点">
+    <button class="btn ghost sm" id="btnUseAddress">使用</button>
+  </div>
+</header>
+
+<!-- 设置弹窗已移除：API 配置统一由后端 .env 管理 -->
+
+
+<main class="chat-layout">
+
+  <!-- ================= 聊天消息区 ================= -->
+  <section class="chat-box" id="chatBox">
+
+    <!-- 欢迎气泡（AI） -->
+    <div class="msg ai-msg">
+      <div class="avatar">🤖</div>
+      <div class="bubble">
+        <div class="bubble-content markdown">
+          <p>你好，我是<strong>知途</strong>——一个会推理、会算账的本地向导 Agent。</p>
+          <p>告诉我你想吃什么、预算多少，我会：</p>
+          <ol>
+            <li>检索你周边的真实门店</li>
+            <li>展示我的<strong>思考过程</strong>（剔除超预算 → 算真实花费 → 排性价比）</li>
+            <li>给你一份可以直接执行的方案</li>
+          </ol>
+        </div>
+        <div class="quick-chips">
+          <button class="chip" data-sample="周末想去周边吃顿好的，预算100">🍲 周边川菜·预算100</button>
+          <button class="chip" data-sample="附近性价比高的川菜馆，人均80左右">🌶 性价比川菜</button>
+          <button class="chip" data-sample="找个安静能坐一下午的咖啡馆，人均50以内">☕ 安静咖啡馆</button>
+          <button class="chip" data-sample="晚上想吃烧烤，三个人，人均60以内">🍢 夜宵烧烤</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ================= 底部输入区 ================= -->
+  <footer class="chat-input-area no-print">
+
+    <!-- 模式开关：AI深度思考 / 联网搜索 -->
+    <div class="mode-row">
+      <label class="toggle">
+        <input type="checkbox" id="toggleLLM" checked>
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span class="toggle-label">🧠 AI 深度思考</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="toggleWebSearch" checked>
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span class="toggle-label">🌐 联网搜索</span>
+      </label>
+    </div>
+
+    <!-- 个性化勾选框 -->
+    <div class="profile-row">
+      <span class="profile-label">个性化：</span>
+      <label class="check"><input type="checkbox" id="chkKids"> 👶 带小孩</label>
+      <label class="check"><input type="checkbox" id="chkCoupon"> 🎫 有优惠券</label>
+      <label class="check"><input type="radio" name="transport" value="打车" checked> 🚕 打车</label>
+      <label class="check"><input type="radio" name="transport" value="地铁"> 🚇 地铁</label>
+      <label class="check"><input type="radio" name="transport" value="步行/骑行"> 🚶 步行</label>
+      <label class="check people-count">人数
+        <input type="number" id="numPeople" value="2" min="1" max="20">
+      </label>
+    </div>
+
+    <!-- 输入行 -->
+    <div class="input-row">
+      <textarea id="queryInput" rows="1"
+        placeholder="描述你的需求，例如：附近性价比高的川菜，预算100…（Ctrl+Enter 发送）"></textarea>
+      <button class="btn primary send-btn" id="btnGenerate">发送</button>
+    </div>
+    <p class="hint">生成约 5~20 秒：定位 → 检索周边门店 → AI 推理打分。多轮对话支持追问「换一家」「便宜点的」。</p>
+  </footer>
+
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<!-- marked.js：Markdown 渲染（CDN），加载失败时前端有自研轻量渲染兜底 -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

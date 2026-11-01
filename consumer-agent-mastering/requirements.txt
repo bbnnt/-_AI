@@ -1,0 +1,9 @@
+# ---- 核心依赖 ----
+Flask>=3.0
+requests>=2.31
+python-dotenv>=1.0
+
+# ---- 可选：DuckDuckGo 搜索库 ----
+# 装上后搜索质量更好；不装会自动回退到「HTML 抓取」实现，功能不受影响。
+# 包名历史上叫 duckduckgo_search，新版改名为 ddgs，两者代码都兼容。
+ddgs>=9.0
