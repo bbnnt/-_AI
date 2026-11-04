@@ -3,6 +3,12 @@
 # 预处理器还会自动注入阿里云 pip/apt 镜像，无需手动配置
 FROM python:3.11-slim
 
+# 生产环境 Python 最佳实践：
+# PYTHONDONTWRITEBYTECODE：不生成 .pyc，减小镜像体积
+# PYTHONUNBUFFERED：日志实时输出到 stdout，DevCloud 才能收集容器日志
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 # 先拷贝依赖清单并安装（利用 Docker 层缓存：代码变动不重装依赖）
@@ -16,5 +22,7 @@ COPY . .
 EXPOSE 8080
 
 # 生产 WSGI 服务器：gunicorn
+# --workers 2 --threads 4：大模型调用是 IO 密集型，线程提升并发吞吐
 # --timeout 120：大模型推理 + 联网搜索可能耗时较长，默认 30s 会误杀 worker
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "120", "app:app"]
+# --access-logfile - --error-logfile -：日志输出到 stdout/stderr 供平台收集
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
