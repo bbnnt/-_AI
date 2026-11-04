@@ -25,7 +25,7 @@ import time
 import uuid
 from typing import Dict, List, Optional
 
-from services.search.base import Place, parse_distance
+from services.search.base import Place
 
 # 存储文件：项目根目录 data/user_records.json
 _DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -238,7 +238,7 @@ def record_to_place(record: dict) -> Place:
         address=address,
         rating=rating,
         avg_cost=float(avg_cost) if avg_cost else None,
-        distance_m=parse_distance(address) or None,   # 地址里若含距离描述则解析
+        distance_m=None,   # 亲测记录无距离信息（用户未提供与当前定位的距离）
         category="",
         tags=tags,
         url="",

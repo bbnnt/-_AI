@@ -22,6 +22,7 @@
 """
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Tuple
 
 from flask import Blueprint, jsonify, request
@@ -400,13 +401,16 @@ def records_add():
         except (TypeError, ValueError):
             return None
 
+    people = _num("people")
+    avg_cost = _num("avg_cost")
+    total_cost = _num("total_cost")
     try:
         record = user_db.add_record(
             name=name,
             address=(payload.get("address") or "").strip(),
-            people=int(_num("people")) if _num("people") else None,
-            avg_cost=_num("avg_cost"),
-            total_cost=_num("total_cost"),
+            people=int(people) if people else None,
+            avg_cost=avg_cost,
+            total_cost=total_cost,
             comment=(payload.get("comment") or "").strip(),
         )
     except ValueError as exc:
@@ -582,7 +586,6 @@ def recommend():
             except Exception as exc:
                 return [], "", [], [f"[osm] {exc}"]
 
-        from concurrent.futures import ThreadPoolExecutor
         # 不用 with 上下文（退出时会等线程跑完导致超时后仍卡住），shutdown(wait=False) 立即放行
         _pool = ThreadPoolExecutor(max_workers=2)
         try:

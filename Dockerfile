@@ -25,4 +25,4 @@ EXPOSE 8080
 # --workers 2 --threads 4：大模型调用是 IO 密集型，线程提升并发吞吐
 # --timeout 120：大模型推理 + 联网搜索可能耗时较长，默认 30s 会误杀 worker
 # --access-logfile - --error-logfile -：日志输出到 stdout/stderr 供平台收集
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "--timeout", "120", "--preload", "--access-logfile", "-", "--error-logfile", "-", "app:app"]

@@ -11,7 +11,7 @@
 #  本文件方案：「Mock 数据 + 真实接口预留」
 #    - 演示阶段：get_mock_places() 返回结构完整的 5 条商家数据，保证演示效果；
 #    - 上线阶段：将 routes.py 中的调用替换为高德地图 API
-#      （请求代码框架见本文件底部注释，完整实现见 services/search/amap.py）。
+#      （完整实现见 services/search/amap.py）。
 # ============================================================
 """
 import random
@@ -349,44 +349,3 @@ def get_mock_places(location: str, keyword: str, sample_size: int = 5) -> List[d
     pool = _DATASET_DEFAULT
     picks = random.sample(pool, min(sample_size, len(pool)))
     return [dict(item) for item in picks]
-
-
-# ============================================================
-#  TODO: 未来上线时，此处替换为高德地图API
-#  ------------------------------------------------------------
-#  高德 Web 服务 POI 周边搜索请求框架（取消注释并配置 AMAP_KEY 即可启用）：
-#
-#  import requests
-#
-#  AMAP_KEY = "你的高德Web服务Key"          # console.amap.com 创建，选「Web服务」类型
-#  AMAP_AROUND_URL = "https://restapi.amap.com/v3/place/around"
-#
-#  def get_real_places(lat: float, lng: float, keyword: str, radius: int = 5000) -> list:
-#      """高德周边搜索：返回真实 POI（含评分/人均/距离），结构与 get_mock_places 对齐"""
-#      resp = requests.get(AMAP_AROUND_URL, params={
-#          "key": AMAP_KEY,
-#          "location": f"{lng:.6f},{lat:.6f}",   # 高德要求 经度,纬度
-#          "keywords": keyword,
-#          "radius": radius,
-#          "sortrule": "distance",               # 按距离由近到远
-#          "extensions": "all",                  # 返回评分/人均等扩展字段
-#          "output": "JSON",
-#      }, timeout=5)
-#      data = resp.json()
-#      if str(data.get("status")) != "1":
-#          raise RuntimeError(f"高德返回错误：{data.get('info')}")
-#      places = []
-#      for poi in data.get("pois", []):
-#          biz = poi.get("biz_ext") or {}
-#          places.append({
-#              "name":     poi.get("name", ""),
-#              "distance": f"{int(poi.get('distance', 0))}m",   # 高德直接返回米数
-#              "rating":   biz.get("rating"),                    # 如 4.7
-#              "cost":     f"{biz.get('cost')}元",               # 人均，如 "85元"
-#              "address":  poi.get("address", ""),
-#          })
-#      return places
-#
-#  注：项目内已有完整封装 services/search/amap.py（含错误处理与字段清洗），
-#      上线时直接 `from services.search.amap import search as get_real_places` 即可。
-# ============================================================

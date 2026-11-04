@@ -13,7 +13,7 @@ OSM Overpass API 周边餐饮搜索（免费、无需 API Key、真实门店数�
 """
 import math
 import random
-from typing import List, Optional, Tuple
+from typing import List, Tuple, Optional, Tuple
 
 import requests
 
@@ -142,7 +142,7 @@ def search(
     # 关键词匹配目标（用于相关性排序）
     cuisine_targets = _KEYWORD_CUISINE.get(keyword, None)
 
-    places: List[Place] = []
+    scored: List[Tuple[int, Place]] = []
     for el in elements:
         tags = el.get("tags") or {}
         name = (tags.get("name") or "").strip()
@@ -180,7 +180,7 @@ def search(
         if cuisine:
             tag_list.append(cuisine.split(";")[0])
 
-        places.append(Place(
+        scored.append((relevance, Place(
             name=name,
             address=address_str,
             rating=rating,
@@ -191,25 +191,14 @@ def search(
             url="",
             snippet=f"真实门店（OSM）｜{category_cn}｜人均约{cost}元（AI估算）｜评分{rating}（AI估算）",
             source="OSM 开放地图（实时）",
-        ))
-        # 把 relevance 挂到 Place 上用于排序（通过 tags 临时传递，排序后不影响展示）
-        places[-1].tags.append(f"__rel_{relevance}")
+        )))
 
-    if not places:
+    if not scored:
         raise SearchUnavailable("OSM 结果均无有效店名")
 
     # 排序：相关性 > 距离
-    def sort_key(p: Place):
-        rel = 0
-        for t in p.tags:
-            if t.startswith("__rel_"):
-                rel = int(t[6:])
-        return (-rel, p.distance_m or 99999)
-
-    places.sort(key=sort_key)
-    # 清理临时标记
-    for p in places:
-        p.tags = [t for t in p.tags if not t.startswith("__rel_")]
+    scored.sort(key=lambda pair: (-pair[0], pair[1].distance_m or 99999))
+    places = [p for _, p in scored]
 
     notes = ["评分/人均为 AI 估算值（OSM 原始数据无此字段），仅供参考"]
     return places[:limit], notes

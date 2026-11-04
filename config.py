@@ -82,7 +82,13 @@ class Config:
     def llm_ready(cls) -> bool:
         if cls.LLM_PROVIDER == "ollama":
             return True  # 本地模型，是否在线由调用时探测
-        return bool(cls.DEEPSEEK_API_KEY)
+        if not cls.DEEPSEEK_API_KEY:
+            return False
+        try:
+            cls.DEEPSEEK_API_KEY.encode("ascii")
+            return True
+        except UnicodeEncodeError:
+            return False  # 含非 ASCII 字符（疑似未替换的占位符）
 
     @classmethod
     def search_ready(cls) -> dict:
