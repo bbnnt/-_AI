@@ -33,9 +33,10 @@ def _env_float(key: str, default: float) -> float:
 class Config:
     # ---------------- Flask ----------------
     SECRET_KEY = _env("SECRET_KEY", "dev-only-change-me")
-    HOST = _env("HOST", "127.0.0.1")
-    PORT = _env_int("PORT", 5000)
-    DEBUG = _env("DEBUG", "1") == "1"
+    # 默认值面向生产/容器部署（DevCloud 要求 0.0.0.0:8080）；本地开发在 .env 里覆盖
+    HOST = _env("HOST", "0.0.0.0")
+    PORT = _env_int("PORT", 8080)
+    DEBUG = _env("DEBUG", "0") == "1"
 
     # ---------------- 大模型 ----------------
     # deepseek => 云端 API；ollama => 本地模型（OpenAI 兼容协议）

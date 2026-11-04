@@ -302,12 +302,116 @@
   }
 
   /* ============================================================
+   *  我的消费记录（录入 / 列表 / 删除）
+   * ============================================================ */
+  function openRecordsModal() {
+    $('recordsModal').classList.remove('hidden');
+    loadRecords();
+  }
+
+  function closeRecordsModal() {
+    $('recordsModal').classList.add('hidden');
+  }
+
+  function loadRecords() {
+    fetch('/api/records')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || '加载失败');
+        renderRecords(data.records || []);
+      })
+      .catch(function (err) { toast(err.message || '加载记录失败'); });
+  }
+
+  function renderRecords(records) {
+    var list = $('recordList');
+    $('recCount').textContent = records.length + ' 条';
+    if (!records.length) {
+      list.innerHTML = '<p class="record-empty">暂无记录，先在上方录入一家你消费过的餐厅吧～</p>';
+      return;
+    }
+    list.innerHTML = records.map(function (r) {
+      var metrics = [];
+      if (r.people) metrics.push('👥 ' + r.people + '人');
+      if (r.avg_cost) metrics.push('💰 人均' + r.avg_cost + '元');
+      if (r.total_cost) metrics.push('🧾 总价' + r.total_cost + '元');
+      return '<div class="record-item">' +
+        '<div class="record-item-head">' +
+          '<span class="record-item-name">' + escapeHtml(r.name) + '</span>' +
+          '<button class="record-del" data-id="' + escapeHtml(r.id) + '" title="删除">✕</button>' +
+        '</div>' +
+        (r.address ? '<div class="record-item-addr">📍 ' + escapeHtml(r.address) + '</div>' : '') +
+        (metrics.length ? '<div class="record-item-metrics">' + metrics.join(' · ') + '</div>' : '') +
+        (r.comment ? '<div class="record-item-comment">💬 ' + escapeHtml(r.comment) + '</div>' : '') +
+      '</div>';
+    }).join('');
+
+    // 绑定删除按钮
+    var dels = list.querySelectorAll('.record-del');
+    Array.prototype.forEach.call(dels, function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('确定删除这条消费记录？')) return;
+        fetch('/api/records/' + btn.getAttribute('data-id'), { method: 'DELETE' })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (!data.ok) throw new Error(data.error || '删除失败');
+            toast('已删除');
+            loadRecords();
+          })
+          .catch(function (err) { toast(err.message || '删除失败'); });
+      });
+    });
+  }
+
+  function submitRecord() {
+    var name = $('recName').value.trim();
+    if (!name) { toast('请填写饭店名称'); $('recName').focus(); return; }
+
+    var payload = {
+      name: name,
+      address: $('recAddress').value.trim(),
+      people: $('recPeople').value,
+      avg_cost: $('recAvgCost').value,
+      total_cost: $('recTotalCost').value,
+      comment: $('recComment').value.trim()
+    };
+
+    fetch('/api/records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || '保存失败');
+        toast('✅ 已保存，搜索时会优先推荐这家店');
+        // 清空表单
+        $('recName').value = '';
+        $('recAddress').value = '';
+        $('recPeople').value = '';
+        $('recAvgCost').value = '';
+        $('recTotalCost').value = '';
+        $('recComment').value = '';
+        loadRecords();
+      })
+      .catch(function (err) { toast(err.message || '保存失败'); });
+  }
+
+  /* ============================================================
    *  事件绑定
    * ============================================================ */
   function bind() {
     $('btnLocate').addEventListener('click', locate);
     $('btnUseAddress').addEventListener('click', useManualAddress);
     $('btnGenerate').addEventListener('click', generate);
+
+    // 我的消费记录面板
+    $('btnRecords').addEventListener('click', openRecordsModal);
+    $('btnCloseRecords').addEventListener('click', closeRecordsModal);
+    $('btnAddRecord').addEventListener('click', submitRecord);
+    $('recordsModal').addEventListener('click', function (e) {
+      if (e.target === this) closeRecordsModal();   // 点遮罩关闭
+    });
 
     $('addressInput').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') useManualAddress();

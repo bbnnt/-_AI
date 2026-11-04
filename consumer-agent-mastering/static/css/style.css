@@ -373,4 +373,97 @@ textarea {
   .msg { max-width: 94%; }
 }
 
+/* ============================================================
+ *  我的消费记录 弹窗
+ * ============================================================ */
+.modal-mask {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(15, 23, 42, .45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 16px; overflow-y: auto;
+  animation: fadeIn .2s ease;
+}
+.modal-box {
+  width: 560px; max-width: 100%;
+  background: var(--card); border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+  padding: 22px 24px 24px;
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.modal-head h2 { font-size: 17px; font-weight: 700; }
+.modal-close {
+  width: 30px; height: 30px; border: none; border-radius: 8px;
+  background: #f2f4f8; color: var(--text2); font-size: 14px;
+  cursor: pointer; transition: .15s;
+}
+.modal-close:hover { background: #fee2e2; color: var(--danger); }
+.modal-tip {
+  font-size: 12.5px; color: var(--text2); line-height: 1.7;
+  background: var(--primary-soft); border-radius: 10px;
+  padding: 9px 12px; margin-bottom: 16px;
+}
+.modal-tip strong { color: var(--primary); }
+
+/* ---------- 录入表单 ---------- */
+.record-form { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px 4px; background: #fcfdff; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.form-item { display: flex; flex-direction: column; gap: 4px; }
+.form-item.span2 { grid-column: span 2; }
+.form-item label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.form-item label em { color: var(--danger); font-style: normal; margin-left: 2px; }
+.form-item input {
+  padding: 8px 11px; font-size: 13px; font-family: inherit;
+  border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+  width: 100%;
+}
+.form-item input:focus {
+  outline: none; border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 108, 246, .1);
+}
+
+/* ---------- 记录列表 ---------- */
+.record-list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 700; color: var(--text);
+  margin: 18px 0 10px;
+}
+.record-count { font-size: 12px; font-weight: 600; color: var(--text3); }
+.record-list {
+  max-height: 300px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  padding-right: 4px;
+}
+.record-empty {
+  text-align: center; font-size: 13px; color: var(--text3);
+  padding: 26px 12px; border: 1px dashed var(--border); border-radius: 10px;
+}
+.record-item {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; background: #fcfdff;
+  animation: fadeIn .2s ease;
+}
+.record-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.record-item-name { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.record-del {
+  width: 22px; height: 22px; border: none; border-radius: 6px;
+  background: transparent; color: var(--text3); font-size: 12px;
+  cursor: pointer; flex-shrink: 0; transition: .15s;
+}
+.record-del:hover { background: #fee2e2; color: var(--danger); }
+.record-item-addr { font-size: 12px; color: var(--text3); margin-top: 3px; }
+.record-item-metrics { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.record-item-comment {
+  font-size: 12px; color: var(--text2); margin-top: 5px;
+  padding-top: 5px; border-top: 1px dashed var(--border);
+}
+
+@media (max-width: 560px) {
+  .modal-box { padding: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-item.span2 { grid-column: span 1; }
+}
+
 

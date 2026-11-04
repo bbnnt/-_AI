@@ -4,14 +4,17 @@
 # ============================================================
 #
 #  接口清单
-#    GET  /api/health               健康检查
-#    GET  /api/agent/status         各依赖配置自检（大模型 / 搜索渠道）
-#    POST /api/agent/recommend      核心接口：需求 + 定位 -> 联网搜索 -> 大模型推荐
+#    GET    /api/health               健康检查
+#    GET    /api/agent/status         各依赖配置自检（大模型 / 搜索渠道）
+#    POST   /api/agent/recommend      核心接口：需求 + 定位 -> 联网搜索 -> 大模型推荐
+#    GET    /api/records              列出用户消费记录（我的消费记录）
+#    POST   /api/records              新增一条用户消费记录
+#    DELETE /api/records/<id>         删除一条用户消费记录
 #
 #  一次 /api/agent/recommend 的完整链路：
 #    ① 归一化定位（经纬度 -> 地址，或直接用用户手输地址）
 #    ② 组装搜索引擎 Query
-#    ③ 获取候选商家（演示阶段：mock_db 结构化数据；已预留高德地图 API，见 mock_db.py）
+#    ③ 获取候选商家（第零优先：我的消费记录亲测数据 → 高德/DDG/OSM联网 → Mock兜底）
 #    ④ 构造 Prompt（需求 + 定位 + 带编号的真实数据）
 #    ⑤ 调大模型 输出 Markdown 推荐
 #    ⑥ 大模型不可用时，用同一套打分口径在 Python 里兜底，保证永远有结果
@@ -27,6 +30,7 @@ from config import Config
 from prompts.system_prompt import SYSTEM_PROMPT, build_user_prompt
 from services import geo, llm
 from mock_db import get_mock_places
+import user_db
 from services.search.base import Place, parse_distance, dedupe
 from services.search import osm as osm_provider
 from services.search import duckduckgo as ddg_provider
@@ -365,6 +369,60 @@ def health():
     return jsonify({"status": "ok", "service": "zhitu-consumer-agent", "time": int(time.time())})
 
 
+# ============================================================
+#  用户消费记录（我的消费记录）CRUD
+# ============================================================
+@api_bp.get("/records")
+def records_list():
+    """列出全部用户消费记录（按录入时间倒序）。"""
+    return jsonify({"ok": True, "records": user_db.list_records()})
+
+
+@api_bp.post("/records")
+def records_add():
+    """
+    新增一条消费记录。
+    请求体 JSON:
+      { "name": "老李川菜馆", "address": "武侯区科华北路12号",
+        "people": 3, "avg_cost": 85, "total_cost": 255, "comment": "4.5" }
+    """
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "饭店名称不能为空"}), 400
+
+    def _num(key):
+        v = payload.get(key)
+        if v is None or v == "":
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    try:
+        record = user_db.add_record(
+            name=name,
+            address=(payload.get("address") or "").strip(),
+            people=int(_num("people")) if _num("people") else None,
+            avg_cost=_num("avg_cost"),
+            total_cost=_num("total_cost"),
+            comment=(payload.get("comment") or "").strip(),
+        )
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    return jsonify({"ok": True, "record": record})
+
+
+@api_bp.delete("/records/<record_id>")
+def records_delete(record_id: str):
+    """按 id 删除一条消费记录。"""
+    ok = user_db.delete_record(record_id)
+    if not ok:
+        return jsonify({"ok": False, "error": "记录不存在或已删除"}), 404
+    return jsonify({"ok": True})
+
+
 @api_bp.get("/agent/status")
 def agent_status():
     """配置自检：一眼看出哪个 Key 没配、当前走哪条链路。"""
@@ -373,9 +431,9 @@ def agent_status():
     return jsonify({
         "llm": llm_state,
         "search": {
-            "provider": "高德地图(优先) → DDG/OSM联网 → Mock兜底",
+            "provider": "我的消费记录(亲测优先) → 高德地图 → DDG/OSM联网 → Mock兜底",
             "available": channels,
-            "note": "配置 AMAP_KEY 后自动启用高德POI真实搜索（商家+评分+人均+距离）；未配Key时走 DDG/OSM 联网，均不可用则 Mock 兜底",
+            "note": "搜索时优先匹配「我的消费记录」中用户亲测过的店；其余按 高德POI(配AMAP_KEY) → DDG/OSM联网 → Mock兜底 依次补充",
         },
         "budget_default": Config.DEFAULT_BUDGET,
     })
@@ -451,6 +509,19 @@ def recommend():
     provider_label = ""
     osm_notes = []
     search_sources = []          # 记录命中的渠道，用于混合标注
+
+    # ---- 第零优先：我的消费记录（用户亲测数据，最高可信度）----
+    # 用户自己录入过的店，搜索时首先匹配并排在候选列表最前面，
+    # 让大模型/规则引擎优先基于"真实消费体验"做推荐。
+    user_record_hits = user_db.search_records(
+        keyword=keyword,
+        address=location.get("address") or "",
+        limit=Config.SEARCH_LIMIT,
+    )
+    if user_record_hits:
+        for rec in user_record_hits:
+            places.append(user_db.record_to_place(rec))
+        search_sources.append("我的消费记录")
 
     # ---- 第一优先：高德地图 POI 搜索（配了 AMAP_KEY 时自动启用）----
     if web_search_enabled and Config.AMAP_KEY:
