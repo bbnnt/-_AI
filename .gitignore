@@ -10,3 +10,12 @@ __pycache__/
 *.db
 *.db-wal
 *.db-shm
+
+# ---- IDE 内部 ----
+.joycode/
+
+# ---- 临时测试/调试文件 ----
+_check_page.html
+_fix_escape.py
+_test_*.py
+_test_*.json
