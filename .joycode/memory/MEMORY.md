@@ -1,0 +1,1 @@
+- [大赛项目背景与可靠性原则](project_competition.md) — consumer-agent-mastering 项目面向全国AI应用创新大赛，Demo 永不白屏是最高优先级，多级降级链路是有意设计
